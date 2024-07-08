@@ -9,7 +9,7 @@
 const _ = require("lodash");
 const crypto = require("crypto");
 
-const {getAbsoluteServerUrl} = require('strapi-utils');
+const { getAbsoluteServerUrl } = require('strapi-utils');
 
 module.exports = {
 
@@ -19,7 +19,7 @@ module.exports = {
       type: 'plugin',
       name: 'passwordless',
     });
-    return pluginStore.get({key: 'settings'});
+    return pluginStore.get({ key: 'settings' });
   },
 
   async isEnabled() {
@@ -27,15 +27,15 @@ module.exports = {
     return !!settings.enabled;
   },
 
-  async user(email,lvl, clickID, tariff,contentVisibility, period) {
+  async user(email, lvl, clickID, tariff, contentVisibility, period) {
     const settings = await this.settings();
-    const {user: userService} = strapi.plugins['users-permissions'].services;
-    const user = await userService.fetch({email});
+    const { user: userService } = strapi.plugins['users-permissions'].services;
+    const user = await userService.fetch({ email });
     const level = lvl;
     let start = new Date();
     let end = new Date();
-    
-   
+
+
 
     if (!user && settings.createUserIfNotExists) {
 
@@ -52,41 +52,48 @@ module.exports = {
           })
         );
       }
-      
+
       if (period != null) {
         end.setDate(end.getDate() + period);
-        
+
       } else {
         end.setMonth(start.getMonth() + 1);
-        
-      }
-      
 
-      
-        return strapi.query('user', 'users-permissions').create({
-          email,
-          username: email,
-          lvl:level,
-          clickID: clickID,
-          role: {id: role.id},
+      }
+
+
+
+      return strapi.query('user', 'users-permissions').create({
+        email,
+        username: email,
+        lvl: level,
+        clickID: clickID,
+        role: { id: role.id },
+        tariff: tariff,
+        contentVisibility: contentVisibility,
+        subscription_start: start.toISOString(),
+        subscription_end: end.toISOString(),
+        subscritption_start: start.toISOString(),
+        subscritption_end: end.toISOString()
+      });
+    }
+    return await strapi.query('user', 'users-permissions')
+      .update(
+        { email: email },
+        {
+          lvl: level,
           tariff: tariff,
-          contentVisibility: contentVisibility, 
+          contentVisibility: contentVisibility,
+          clickID: clickID,
           subscription_start: start.toISOString(),
           subscription_end: end.toISOString(),
+          subscritption_start: start.toISOString(),
+          subscritption_end: end.toISOString()
         });
-    } 
-    return  await strapi.query('user', 'users-permissions')
-                    .update(
-                      {email: email}, 
-                      {
-                        lvl: level, 
-                      tariff: tariff,
-                      contentVisibility: contentVisibility
-                    });
-    
+
   },
 
-  async setIqValues(email,lvl, id) {
+  async setIqValues(email, lvl, id) {
     /* const settings = await, this.settings();
     const {user: userService} = strapi.plugins['users-permissions'].services;
     const user = await userService.fetch({email});
@@ -94,8 +101,8 @@ module.exports = {
     let start = new Date();
     let end = new Date(); */
     var KW = 0;
-   
-    switch (lvl){
+
+    switch (lvl) {
       case "Q01":
         KW = 0;
         break;
@@ -120,31 +127,31 @@ module.exports = {
       case "Q08":
         KW = 1;
         break;
-    }      
-      const result = await strapi
-        .query('iq-value-pre-land')
-        .create({
-          user:id,
-          all: Math.round(29 * KW + 27),
-          attention: Math.round(24 * KW + 21),
-          thinking: Math.round(24 * KW + 35),
-          memory: Math.round(37 * KW + 32),
-          perception: Math.round(14 * KW + 38),
-        })
-        return result;
-        
-      
-      
-    
+    }
+    const result = await strapi
+      .query('iq-value-pre-land')
+      .create({
+        user: id,
+        all: Math.round(29 * KW + 27),
+        attention: Math.round(24 * KW + 21),
+        thinking: Math.round(24 * KW + 35),
+        memory: Math.round(37 * KW + 32),
+        perception: Math.round(14 * KW + 38),
+      })
+    return result;
+
+
+
+
   },
 
-  async updateUser(email,lvl, tariff,contentVisibility) {
+  async updateUser(email, lvl, tariff, contentVisibility) {
     const settings = await this.settings();
-    const {user: userService} = strapi.plugins['users-permissions'].services;
-    const user = await userService.fetch({email});
+    const { user: userService } = strapi.plugins['users-permissions'].services;
+    const user = await userService.fetch({ email });
     const level = lvl;
     let start = new Date();
-    
+
 
     if (!user /* && settings.createUserIfNotExists */) {
 
@@ -169,20 +176,22 @@ module.exports = {
           message: 'User is not registered',
         })
       );
-    } else { 
-    return  await strapi.query('user', 'users-permissions').update({
-      email},{
-      username: email},
-      {lvl:level},
-      //{role: {id: role.id}},
-      {tariff: tariff},
-      {contentVisibility: contentVisibility},
-      {subscription_start: start.toISOString()},
-    );
+    } else {
+      return await strapi.query('user', 'users-permissions').update({
+        email
+      }, {
+        username: email
+      },
+        { lvl: level },
+        //{role: {id: role.id}},
+        { tariff: tariff },
+        { contentVisibility: contentVisibility },
+        { subscription_start: start.toISOString() },
+      );
     }
   },
 
-  async sendLoginLink(token,htmlMessage,lvl, subjectText, site) {
+  async sendLoginLink(token, htmlMessage, lvl, subjectText, site) {
     const settings = await this.settings();
     const level = lvl;
 
@@ -215,9 +224,9 @@ module.exports = {
 
   async createToken(email) {
     const tokensService = strapi.query('tokens', 'passwordless');
-    const oldTokens = await tokensService.find({email});
+    const oldTokens = await tokensService.find({ email });
     await Promise.all(oldTokens.map((token) => {
-      return tokensService.update({id: token.id}, {is_active: false});
+      return tokensService.update({ id: token.id }, { is_active: false });
     }));
     const body = crypto.randomBytes(20).toString('hex');
     const tokenInfo = {
@@ -230,7 +239,7 @@ module.exports = {
 
   updateTokenOnLogin(token) {
     const tokensService = strapi.query('tokens', 'passwordless');
-    return tokensService.update({id: token.id}, {is_active: false, login_date: new Date()});
+    return tokensService.update({ id: token.id }, { is_active: false, login_date: new Date() });
   },
 
   async isTokenValid(token) {
@@ -245,14 +254,14 @@ module.exports = {
 
     const isValidDate = nowDate - tokenDate <= settings.expire_period;
     if (!isValidDate) {
-      await tokensService.update({id: token.id}, {is_active: false});
+      await tokensService.update({ id: token.id }, { is_active: false });
     }
     return isValidDate;
   },
 
   fetchToken(body) {
     const tokensService = strapi.query('tokens', 'passwordless');
-    return tokensService.findOne({body});
+    return tokensService.findOne({ body });
   },
 
   template(layout, data) {
