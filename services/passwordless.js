@@ -84,11 +84,7 @@ module.exports = {
           lvl: level,
           tariff: tariff,
           contentVisibility: contentVisibility,
-          clickID: clickID,
-          subscription_start: start.toISOString(),
-          subscription_end: end.toISOString(),
-          subscritption_start: start.toISOString(),
-          subscritption_end: end.toISOString()
+          clickID: clickID
         });
 
   },
