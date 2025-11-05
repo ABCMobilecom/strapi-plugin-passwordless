@@ -34,7 +34,7 @@ module.exports = {
     const level = lvl;
     let start = new Date();
     let end = new Date();
-
+    let isNew = false;
 
 
     if (!user && settings.createUserIfNotExists) {
@@ -63,7 +63,7 @@ module.exports = {
 
 
 
-      return strapi.query('user', 'users-permissions').create({
+      const newUser = await strapi.query('user', 'users-permissions').create({
         email,
         username: email,
         lvl: level,
@@ -76,8 +76,15 @@ module.exports = {
         subscritption_start: start.toISOString(),
         subscritption_end: end.toISOString()
       });
+
+      const fullUser = await strapi
+        .query('user', 'users-permissions')
+        .findOne({ id: newUser.id });
+
+      isNew = true;
+      return { user: fullUser, isNew };
     }
-    return await strapi.query('user', 'users-permissions')
+    const updatedUser = await strapi.query('user', 'users-permissions')
       .update(
         { email: email },
         {
@@ -86,7 +93,7 @@ module.exports = {
           contentVisibility: contentVisibility,
           clickID: clickID
         });
-
+    return { user: updatedUser, isNew };
   },
 
   async setIqValues(email, lvl, id) {
@@ -174,10 +181,10 @@ module.exports = {
       );
     } else {
       return await strapi.query('user', 'users-permissions').update({
-        email
-      }, {
-        username: email
-      },
+          email
+        }, {
+          username: email
+        },
         { lvl: level },
         //{role: {id: role.id}},
         { tariff: tariff },
