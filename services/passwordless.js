@@ -29,8 +29,15 @@ module.exports = {
 
   async user(email, lvl, clickID, tariff, contentVisibility, period, domain = 'no-domain') {
     const settings = await this.settings();
+    const debugLog = [];
+
+    debugLog.push(`passwordless.user() called with: email=${email}, lvl=${lvl}, clickID=${clickID}, domain=${domain}`);
+    debugLog.push(`passwordless settings: ${JSON.stringify(settings)}`);
+
     const { user: userService } = strapi.plugins['users-permissions'].services;
     const user = await userService.fetch({ email });
+    debugLog.push(`User fetch result: ${user ? 'User exists' : 'User not found'}`);
+
     const level = lvl;
     let start = new Date();
     let end = new Date();
@@ -38,19 +45,19 @@ module.exports = {
 
 
     if (!user && settings.createUserIfNotExists) {
+      debugLog.push(`Creating new user: ${email}`);
 
       const role = await strapi
         .query('role', 'users-permissions')
         .findOne({ id: 1 }, []);
 
       if (!role) {
-        return ctx.badRequest(
-          null,
-          formatError({
-            id: 'Auth.form.error.role.notFound',
-            message: 'Impossible to find the default role.',
-          })
-        );
+        debugLog.push(`ERROR: Role with id 1 not found for email: ${email}`);
+        return {
+          user: null,
+          isNew: false,
+          debugLog
+        };
       }
 
       if (period != null) {
@@ -82,9 +89,12 @@ module.exports = {
         .query('user', 'users-permissions')
         .findOne({ id: newUser.id });
 
+      debugLog.push(`User created successfully: ${email}`);
       isNew = true;
-      return { user: fullUser, isNew };
+      return { user: fullUser, isNew, debugLog };
     }
+
+    debugLog.push(`User exists, attempting to update: ${email}`);
     const updatedUser = await strapi.query('user', 'users-permissions')
       .update(
         { email: email },
@@ -94,7 +104,18 @@ module.exports = {
           contentVisibility: contentVisibility,
           clickID: clickID
         });
-    return { user: updatedUser, isNew };
+
+    if (!updatedUser) {
+      debugLog.push(`ERROR: Failed to update user: ${email}`);
+      return {
+        user: null,
+        isNew: false,
+        debugLog
+      };
+    }
+
+    debugLog.push(`User updated successfully: ${email}`);
+    return { user: updatedUser, isNew, debugLog };
   },
 
   async setIqValues(email, lvl, id) {
