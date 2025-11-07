@@ -27,7 +27,7 @@ module.exports = {
     return !!settings.enabled;
   },
 
-  async user(email, lvl, clickID, tariff, contentVisibility, period) {
+  async user(email, lvl, clickID, tariff, contentVisibility, period, domain = 'no-domain') {
     const settings = await this.settings();
     const { user: userService } = strapi.plugins['users-permissions'].services;
     const user = await userService.fetch({ email });
@@ -71,6 +71,7 @@ module.exports = {
         role: { id: role.id },
         tariff: tariff,
         contentVisibility: contentVisibility,
+        domain: domain,
         subscription_start: start.toISOString(),
         subscription_end: end.toISOString(),
         subscritption_start: start.toISOString(),
